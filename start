@@ -1,0 +1,28 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------
+# docker /start.sh script
+# -----------------------------------------------------------------------------
+export TS_VERSION=`curl -Ls https://www.server-residenz.com/tools/ts3versions.json | jsawk -n 'out(this.latest)'`
+TARFILE=teamspeak3-server_linux_amd64-${TS_VERSION}.tar.bz2
+
+rm -r /opt/tsBase/*
+echo "Downloading ${TARFILE} ..."
+curl -L http://dl.4players.de/ts/releases/${TS_VERSION}/${TARFILE} | tar jxvf - -C /opt/tsBase
+cp -R /opt/tsBase/teamspeak3-server_linux_amd64/* /opt/teamspeak
+
+
+if [ ! -d "/data/files" ]; then
+  mkdir /data/files
+  echo "Created Files Folder!"
+fi
+
+rm /opt/teamspeak/ts3server.sqlitedb
+rm -r /opt/teamspeak/files
+ln -s /data/ts3server.sqlitedb /opt/teamspeak/ts3server.sqlitedb
+ln -s /data/files /opt/teamspeak/files
+
+cd /opt/teamspeak
+echo "127.0.0.1" >> query_ip_whitelist.txt
+echo "172.0.0.0/8" >> query_ip_whitelist.txt
+
+exec /usr/bin/env LD_LIBRARY_PATH="/opt/teamspeak" /opt/teamspeak/ts3server inifile=/data/ts3server.ini logpath=/data/logs disable_db_logging=0
