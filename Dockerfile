@@ -1,30 +1,32 @@
 #To Run: docker run --name ts-dev -p $IP:9987:9987/udp -p $IP:10011:10011 -p $IP:30033:30033 -v **TS DATA LOCATION**:/data ts-dev
-FROM debian:wheezy
+FROM frolvlad/alpine-glibc
 MAINTAINER Adam Dodman <adam.dodman@gmx.com>
 
-EXPOSE 9987/udp
-EXPOSE 10011
-EXPOSE 30033
+ENV VERSION 3.0.13.6
+ENV DOWNLOADURL http://dl.4players.de/ts/releases/${VERSION}/teamspeak3-server_linux_amd64-${VERSION}.tar.bz2
 
-#Update base
-RUN apt-get update -q \
-    && DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -qy
+ENV LD_LIBRARY_PATH /teamspeak
 
-# Install software
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -qy --no-install-recommends libnspr4 spidermonkey-bin ca-certificates curl bzip2\
-	&& curl -L -o /usr/bin/jsawk https://github.com/micha/jsawk/raw/master/jsawk \
-	&& chmod +x /usr/bin/jsawk \
-	&& apt-get clean \
-	&& rm -rf /var/lib/apt /tmp/* /var/tmp/*
-
-#Create Runtime Directory
-RUN mkdir /opt/teamspeak && mkdir /opt/tsBase
+# Download and configure teamspeak
+RUN mkdir /teamspeak \
+ && wget $DOWNLOADURL -O /tmp/teamspeak.tar.bz2 \
+ && tar jxf /tmp/teamspeak.tar.bz2 -C /teamspeak \
+ && mv /teamspeak/teamspeak3-server*/* /teamspeak \
+ && ls -lah /teamspeak/teamspeak3-server* \
+ && rmdir /teamspeak/teamspeak3-server* \
+ && rm /tmp/teamspeak.tar.bz2
 
 # Add custom files
 COPY start /
 
 #CHMOD start
 RUN chmod +x /start
+
+
+# Ports
+EXPOSE 9987/udp
+EXPOSE 10011
+EXPOSE 30033
 
 # Start command
 CMD ["/start"]
